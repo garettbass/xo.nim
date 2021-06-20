@@ -731,10 +731,10 @@ macro shader*(n: typed) =
     echo glsl
     let glslFile = n.lineInfoObj.filename & ".glsl"
     writeFile(glslFile, glsl)
-    shader.language = Language.Glsl
-    shader.vert.source = vert
-    shader.frag.source = frag
-    print shader
+    # shader.language = Language.Glsl
+    # shader.vert.source = vert
+    # shader.frag.source = frag
+    # print shader
     result = newLit(shader)
 
 
@@ -889,23 +889,23 @@ when isMainModule:
 
   let s = shader:
     # blend(add(SrcAlpha,OneMinusSrcAlpha))
-    blend(
-      color=add(SrcAlpha,OneMinusSrcAlpha),
-      alpha=add(SrcAlpha,OneMinusSrcAlpha),
-    )
+    # blend(
+    #   color=add(SrcAlpha,OneMinusSrcAlpha),
+    #   alpha=add(SrcAlpha,OneMinusSrcAlpha),
+    # )
 
-    depth(
-      write=true,
-      compare=Comparison.Less
-    )
+    # depth(
+    #   write=true,
+    #   compare=Comparison.Less
+    # )
 
-    stencil(
-      readMask=0xFFu8,
-      writeMask=0xFFu8,
-      refValue=0u8,
-      front=face(),
-      back=face(),
-    )
+    # stencil(
+    #   readMask=0xFFu8,
+    #   writeMask=0xFFu8,
+    #   refValue=0u8,
+    #   front=face(),
+    #   back=face(),
+    # )
 
     var transforms:Transforms
 
@@ -913,23 +913,24 @@ when isMainModule:
       position:Vec4f
       color:Vec4f
 
-    type Instance = object
-      translation:Vec3f
-      scale:float32
-      rotation:Vec4f
+    # type Instance = object
+    #   translation:Vec3f
+    #   scale:float32
+    #   rotation:Vec4f
 
     type Fragment = Vertex
-
-    type Sample = object
-      color:Vec4f
 
     proc vert*(v:Vertex, vertId, instId:uint32):Fragment =
       result.position = transforms.mvp * v.position.xyzw
       result.color = v.color
 
-    include pbr
+    # include pbr
+
+    type Sample* = object
+      rgba*:Vec4f
 
     proc frag*(f:Fragment):Sample =
-      result.color = f.color * pbr()
+      result.rgba = f.color #* pbr()
 
+  echo s
   discard s

@@ -94,6 +94,7 @@ proc init*(s:var Surface, hwnd:HWND) =
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 proc resize*(s:var Surface) =
+  assert(s.swapChain != nil)
   context.OMSetRenderTargets(0, nil, nil)
   saferelease s.rtv
   saferelease s.dsv
@@ -137,10 +138,29 @@ proc resize*(s:var Surface) =
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 proc clear*(s:Surface, color:array[4,cfloat], depth:float, stencil:uint8) =
+  assert(s.swapChain != nil)
   context.ClearRenderTargetView(s.rtv, color)
   context.ClearDepthStencilView(s.dsv,D3D11_CLEAR_DEPTH_STENCIL,depth,stencil)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 proc present*(s:var Surface, vsync:bool) =
+  assert(s.swapChain != nil)
   checkresult s.swapChain.Present(SyncInterval = vsync.uint32, Flags = 0)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+proc `fullscreen`*(s:Surface):bool =
+  assert(s.swapChain != nil)
+  var fullscreen : BOOL
+  var target : ptr IDXGIOutput
+  checkresult s.swapChain.GetFullscreenState(addr fullscreen, addr target)
+  return fullscreen
+
+proc `fullscreen=`*(s:var Surface, fullscreen:bool) =
+  assert(s.swapChain != nil)
+  var fullscreen : BOOL = fullscreen
+  var target : ptr IDXGIOutput = nil
+  checkresult s.swapChain.SetFullscreenState(fullscreen, target)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

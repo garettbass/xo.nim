@@ -1,6 +1,21 @@
-type BOOL* = int32
+type BOOL* {.size:4.} = enum
+  FALSE
+  TRUE
 converter toBOOL*(b:bool):BOOL = b.BOOL
-converter tobool*(b:BOOL):bool = b != 0
+converter tobool*(b:BOOL):bool = b != FALSE
+
+#-------------------------------------------------------------------------------
+
+template MAKEINTRESOURCE*(i:untyped): untyped = cast[cstring](i and 0xffff)
+
+template MAKEWORD*(a: untyped, b: untyped): uint16 = uint16((b and 0xff) shl 8) or uint16(a and 0xff)
+template MAKELONG*(a: untyped, b: untyped): uint32 = cast[uint32](b shl 16) or uint32(a and 0xffff)
+
+template LOWORD*(l: untyped): uint16 = uint16(l and 0xffff)
+template HIWORD*(l: untyped): uint16 = uint16((l shr 16) and 0xffff)
+
+template LOBYTE*(w: untyped): uint8 = uint8(w and 0xff)
+template HIBYTE*(w: untyped): uint8 = uint8((w shr 8) and 0xff)
 
 #-------------------------------------------------------------------------------
 
@@ -27,16 +42,6 @@ const CW_USEDEFAULT* = cast[int32](0x80000000)
 
 #-------------------------------------------------------------------------------
 
-type GUID* = object
-  Data1*: int32
-  Data2*: uint16
-  Data3*: uint16
-  Data4*: array[8, uint8]
-
-type IID* = GUID
-
-#-------------------------------------------------------------------------------
-
 type HANDLE*    = distinct pointer
 type HBRUSH*    = distinct pointer
 type HCURSOR*   = distinct pointer
@@ -54,6 +59,40 @@ type HRESULT* = int32
 
 #-------------------------------------------------------------------------------
 
+const
+  IDC_ARROW*       = MAKEINTRESOURCE(32512)
+  IDC_IBEAM*       = MAKEINTRESOURCE(32513)
+  IDC_WAIT*        = MAKEINTRESOURCE(32514)
+  IDC_CROSS*       = MAKEINTRESOURCE(32515)
+  IDC_UPARROW*     = MAKEINTRESOURCE(32516)
+  IDC_SIZE*        = MAKEINTRESOURCE(32640)
+  IDC_ICON*        = MAKEINTRESOURCE(32641)
+  IDC_SIZENWSE*    = MAKEINTRESOURCE(32642)
+  IDC_SIZENESW*    = MAKEINTRESOURCE(32643)
+  IDC_SIZEWE*      = MAKEINTRESOURCE(32644)
+  IDC_SIZENS*      = MAKEINTRESOURCE(32645)
+  IDC_SIZEALL*     = MAKEINTRESOURCE(32646)
+  IDC_NO*          = MAKEINTRESOURCE(32648)
+  IDC_HAND*        = MAKEINTRESOURCE(32649)
+  IDC_APPSTARTING* = MAKEINTRESOURCE(32650)
+  IDC_HELP*        = MAKEINTRESOURCE(32651)
+
+#-------------------------------------------------------------------------------
+
+const
+  IDI_APPLICATION* = MAKEINTRESOURCE(32512)
+  IDI_HAND*        = MAKEINTRESOURCE(32513)
+  IDI_QUESTION*    = MAKEINTRESOURCE(32514)
+  IDI_EXCLAMATION* = MAKEINTRESOURCE(32515)
+  IDI_ASTERISK*    = MAKEINTRESOURCE(32516)
+  IDI_WINLOGO*     = MAKEINTRESOURCE(32517)
+  IDI_SHIELD*      = MAKEINTRESOURCE(32518)
+  IDI_WARNING*     = IDI_EXCLAMATION
+  IDI_ERROR*       = IDI_HAND
+  IDI_INFORMATION* = IDI_ASTERISK
+
+#-------------------------------------------------------------------------------
+
 type WCHAR*   = uint16
 type LPCWSTR* = ptr UncheckedArray[WCHAR]
 type LPWSTR*  = ptr UncheckedArray[WCHAR]
@@ -67,26 +106,36 @@ type PM* {.size:4.} = enum
 
 #-------------------------------------------------------------------------------
 
-type POINT* = object
-  x*: int32
-  y*: int32
-
-type RECT* = object
-  left*: int32
-  top*: int32
-  right*: int32
-  bottom*: int32
-
-type SIZE* = object
-  cx*: int32
-  cy*: int32
+const
+  GWLP_USERDATA*   : int32 = -21
+  GWLP_EXSTYLE*    : int32 = -20
+  GWLP_STYLE*      : int32 = -16
+  GWLP_ID*         : int32 = -12
+  GWLP_HWNDPARENT* : int32 = -8
+  GWLP_HINSTANCE*  : int32 = -6
+  GWLP_WNDPROC*    : int32 = -4
 
 #-------------------------------------------------------------------------------
 
-type SECURITY_ATTRIBUTES* = object
-  nLength: uint32
-  lpSecurityDescriptor: pointer
-  bInheritHandle: BOOL
+type SWP* {.size:4.} = enum
+  SWP_NOSIZE         = 0x0001
+  SWP_NOMOVE         = 0x0002
+  SWP_NOZORDER       = 0x0004
+  SWP_NOREDRAW       = 0x0008
+  SWP_NOACTIVATE     = 0x0010
+  SWP_FRAMECHANGED   = 0x0020
+  SWP_SHOWWINDOW     = 0x0040
+  SWP_HIDEWINDOW     = 0x0080
+  SWP_NOCOPYBITS     = 0x0100
+  SWP_NOOWNERZORDER  = 0x0200
+  SWP_NOSENDCHANGING = 0x0400
+  SWP_DEFERERASE     = 0x2000
+  SWP_ASYNCWINDOWPOS = 0x4000
+const
+  SWP_DRAWFRAME*    = SWP_FRAMECHANGED
+  SWP_NOREPOSITION* = SWP_NOOWNERZORDER
+
+proc `or`*(a,b:SWP):SWP = SWP(a.uint or b.uint)
 
 #-------------------------------------------------------------------------------
 
@@ -421,50 +470,40 @@ proc `or`*(a,b:WS_EX):WS_EX = WS_EX(a.uint or b.uint)
 
 #-------------------------------------------------------------------------------
 
-template MAKEINTRESOURCE*(i:untyped): untyped = cast[cstring](i and 0xffff)
+type GUID* = object
+  Data1*: int32
+  Data2*: uint16
+  Data3*: uint16
+  Data4*: array[8, uint8]
 
-template MAKEWORD*(a: untyped, b: untyped): uint16 = uint16((b and 0xff) shl 8) or uint16(a and 0xff)
-template MAKELONG*(a: untyped, b: untyped): uint32 = cast[uint32](b shl 16) or uint32(a and 0xffff)
-
-template LOWORD*(l: untyped): uint16 = uint16(l and 0xffff)
-template HIWORD*(l: untyped): uint16 = uint16((l shr 16) and 0xffff)
-
-template LOBYTE*(w: untyped): uint8 = uint8(w and 0xff)
-template HIBYTE*(w: untyped): uint8 = uint8((w shr 8) and 0xff)
+type IID* = GUID
 
 #-------------------------------------------------------------------------------
 
-const
-  IDI_APPLICATION* = MAKEINTRESOURCE(32512)
-  IDI_HAND*        = MAKEINTRESOURCE(32513)
-  IDI_QUESTION*    = MAKEINTRESOURCE(32514)
-  IDI_EXCLAMATION* = MAKEINTRESOURCE(32515)
-  IDI_ASTERISK*    = MAKEINTRESOURCE(32516)
-  IDI_WINLOGO*     = MAKEINTRESOURCE(32517)
-  IDI_SHIELD*      = MAKEINTRESOURCE(32518)
-  IDI_WARNING*     = IDI_EXCLAMATION
-  IDI_ERROR*       = IDI_HAND
-  IDI_INFORMATION* = IDI_ASTERISK
+type POINT* = object
+  x* : int32
+  y* : int32
 
 #-------------------------------------------------------------------------------
 
-const
-  IDC_ARROW*       = MAKEINTRESOURCE(32512)
-  IDC_IBEAM*       = MAKEINTRESOURCE(32513)
-  IDC_WAIT*        = MAKEINTRESOURCE(32514)
-  IDC_CROSS*       = MAKEINTRESOURCE(32515)
-  IDC_UPARROW*     = MAKEINTRESOURCE(32516)
-  IDC_SIZE*        = MAKEINTRESOURCE(32640)
-  IDC_ICON*        = MAKEINTRESOURCE(32641)
-  IDC_SIZENWSE*    = MAKEINTRESOURCE(32642)
-  IDC_SIZENESW*    = MAKEINTRESOURCE(32643)
-  IDC_SIZEWE*      = MAKEINTRESOURCE(32644)
-  IDC_SIZENS*      = MAKEINTRESOURCE(32645)
-  IDC_SIZEALL*     = MAKEINTRESOURCE(32646)
-  IDC_NO*          = MAKEINTRESOURCE(32648)
-  IDC_HAND*        = MAKEINTRESOURCE(32649)
-  IDC_APPSTARTING* = MAKEINTRESOURCE(32650)
-  IDC_HELP*        = MAKEINTRESOURCE(32651)
+type RECT* = object
+  left*   : int32
+  top*    : int32
+  right*  : int32
+  bottom* : int32
+
+#-------------------------------------------------------------------------------
+
+type SECURITY_ATTRIBUTES* = object
+  nLength              : uint32
+  lpSecurityDescriptor : pointer
+  bInheritHandle       : BOOL
+
+#-------------------------------------------------------------------------------
+
+type SIZE* = object
+  cx* : int32
+  cy* : int32
 
 #-------------------------------------------------------------------------------
 
@@ -498,15 +537,33 @@ type WNDCLASSEXA* = object
 
 #-------------------------------------------------------------------------------
 
-proc CreateWindowExA*(stylex:WS_EX,class,title:cstring,style:WS,x,y,w,h:int32,parent:HWND=nil,menu:HMENU=nil,inst:HINSTANCE=nil,param:pointer=nil):HWND {.stdcall,importc,discardable.}
-proc DefWindowProcA*(hwnd:HWND,msg:WM,wp,lp:int):int {.stdcall,importc,discardable.}
-proc DestroyWindow*(hwnd:HWND):BOOL {.stdcall,importc,discardable.}
-proc GetWindowLongPtrA*(hwnd:HWND,nIndex:int32): uint {.stdcall,importc,discardable.}
-proc InvalidateRect*(hwnd:HWND, lpRect:ptr RECT, bErase:BOOL ):BOOL {.stdcall,importc,discardable.}
-proc LoadCursorA*(hInst:pointer, lpCursorName:cstring):pointer {.stdcall,importc,discardable.}
-proc LoadIconA*(hInst:pointer,lpIconName:cstring):pointer {.stdcall,importc,discardable.}
-proc RegisterClassExA*(wndClass:ptr WNDCLASSEXA):uint16 {.stdcall,importc,discardable.}
-proc SetWindowLongPtrA*(hwnd:HWND,nIndex:int32,value:uint):uint {.stdcall,importc,discardable.}
-proc PeekMessageA*(lpMsg:ptr MSG,hwnd:HWND,wmin,wmax:WM,remove:PM):BOOL {.stdcall,importc,discardable.}
-proc TranslateMessage*(lpMsg:ptr MSG):BOOL {.stdcall,importc,discardable.}
-proc DispatchMessageA*(lpMsg:ptr MSG):int {.stdcall,importc,discardable.}
+{.push stdcall,importc,discardable.}
+
+proc AdjustWindowRectEx*(lpRect:ptr RECT,style:WS,bMenu:BOOL,exStyle:WS_EX):BOOL
+proc CreateWindowExA*(exStyle:WS_EX,class,title:cstring,style:WS,x,y,w,h:int32,parent:HWND=nil,menu:HMENU=nil,inst:HINSTANCE=nil,param:pointer=nil):HWND
+proc DefWindowProcA*(hwnd:HWND,msg:WM,wp,lp:int):int
+proc DestroyWindow*(hwnd:HWND):BOOL
+proc DispatchMessageA*(lpMsg:ptr MSG):int
+proc GetActiveWindow*():HWND
+proc GetClientRect*(hWnd:HWND,lpRect:ptr RECT):BOOL
+proc GetForegroundWindow*():HWND
+proc GetWindowLongPtrA*(hwnd:HWND,nIndex:int32):uint
+proc InvalidateRect*(hwnd:HWND, lpRect:ptr RECT, bErase:BOOL ):BOOL
+proc LoadCursorA*(hInst:pointer, lpCursorName:cstring):pointer
+proc LoadIconA*(hInst:pointer,lpIconName:cstring):pointer
+proc PeekMessageA*(lpMsg:ptr MSG,hwnd:HWND,wmin,wmax:WM,remove:PM):BOOL
+proc RegisterClassExA*(wndClass:ptr WNDCLASSEXA):uint16
+proc SetWindowLongPtrA*(hwnd:HWND,nIndex:int32,value:uint):uint
+proc SetWindowTextA*(hWnd:HWND, lpString:cstring):BOOL
+proc TranslateMessage*(lpMsg:ptr MSG):BOOL
+proc SetWindowPos*(hWnd:HWND,hWndInsertAfter:HWND,x,y,w,h:int32,uFlags:SWP):BOOL
+
+{.pop #[stdcall,importc,discardable]#.}
+
+#-------------------------------------------------------------------------------
+
+proc GetWindowExStyle*(hwnd:HWND):WS_EX {.inline.} =
+  WS_EX(GetWindowLongPtrA(hwnd,GWLP_EXSTYLE))
+
+proc GetWindowStyle*(hwnd:HWND):WS {.inline.} =
+  WS(GetWindowLongPtrA(hwnd,GWLP_STYLE))

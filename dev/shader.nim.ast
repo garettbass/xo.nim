@@ -1,0 +1,101 @@
+StmtList
+  VarSection
+    IdentDefs
+      Sym "transforms"
+      Sym "Transforms"
+      Empty
+  TypeSection
+    TypeDef
+      Sym "Vertex"
+      Empty
+      ObjectTy
+        Empty
+        Empty
+        RecList
+          IdentDefs
+            Ident "position"
+            Sym "Vec4f"
+            Empty
+          IdentDefs
+            Ident "color"
+            Sym "Vec4f"
+            Empty
+  TypeSection
+    TypeDef
+      Sym "Fragment"
+      Empty
+      Sym "Vertex"
+  ProcDef
+    Sym "vert"
+    Empty
+    Empty
+    FormalParams
+      Sym "Fragment"
+      IdentDefs
+        Sym "v"
+        Sym "Vertex"
+        Empty
+      IdentDefs
+        Sym "vertId"
+        Sym "instId"
+        Sym "uint32"
+        Empty
+    Empty
+    Empty
+    StmtList
+      Asgn
+        DotExpr
+          Sym "result"
+          Sym "position"
+        Infix
+          Sym "*"
+          DotExpr
+            Sym "transforms"
+            Sym "mvp"
+          Call
+            Sym "xyzw"
+            DotExpr
+              Sym "v"
+              Sym "position"
+      Asgn
+        DotExpr
+          Sym "result"
+          Sym "color"
+        DotExpr
+          Sym "v"
+          Sym "color"
+    Sym "result"
+  TypeSection
+    TypeDef
+      Sym "Sample"
+      Empty
+      ObjectTy
+        Empty
+        Empty
+        RecList
+          IdentDefs
+            Postfix
+              Ident "*"
+              Ident "rgba"
+            Sym "Vec4f"
+            Empty
+  ProcDef
+    Sym "frag"
+    Empty
+    Empty
+    FormalParams
+      Sym "Sample"
+      IdentDefs
+        Sym "f"
+        Sym "Fragment"
+        Empty
+    Empty
+    Empty
+    Asgn
+      DotExpr
+        Sym "result"
+        Sym "rgba"
+      DotExpr
+        Sym "f"
+        Sym "color"
+    Sym "result"

@@ -8,6 +8,17 @@ converter tobool*[T](p:ptr T):bool = p != nil
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+proc `or`*(a,b:pointer):pointer =
+  if (a != nil):a else:b
+
+proc `or`*(a,b:cstring):cstring =
+  if (a != nil):a else:b
+
+proc `or`*[T](a,b:ptr T):ptr T =
+  if (a != nil):a else:b
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 proc `+`*[I:SomeInteger](p:pointer, i:I):pointer =
   cast[pointer](cast[int](p) + cast[int](i))
 
