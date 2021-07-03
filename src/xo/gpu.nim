@@ -3,6 +3,11 @@ import macros
 import span
 # import tables
 import typeinfo
+import gpu/mesh
+
+#===============================================================================
+
+export mesh
 
 #===============================================================================
 
@@ -18,14 +23,6 @@ type MeshTopology* {.size:1.} = enum
   Triangles
   Lines
   Points
-
-type IndexFormat* {.size:1.} = enum
-  NoIndices
-  Uint16
-  Uint32
-
-proc indexFormatOf(t:typedesc[uint16]):IndexFormat = Uint16
-proc indexFormatOf(t:typedesc[uint32]):IndexFormat = Uint32
 
 type AttributeFormat* {.size:1.} = enum
   NoAttribute
@@ -47,49 +44,33 @@ proc attributeFormatOf*[T](t:typedesc[T]):AttributeFormat =
 
 type Attributes* = array[16,AttributeFormat]
 
+type VertexFormat* = object
+  attribute0  {.bitsize:4,align(8).} : AttributeFormat
+  attribute1  {.bitsize:4.}          : AttributeFormat
+  attribute2  {.bitsize:4.}          : AttributeFormat
+  attribute3  {.bitsize:4.}          : AttributeFormat
+  attribute4  {.bitsize:4.}          : AttributeFormat
+  attribute5  {.bitsize:4.}          : AttributeFormat
+  attribute6  {.bitsize:4.}          : AttributeFormat
+  attribute7  {.bitsize:4.}          : AttributeFormat
+  attribute8  {.bitsize:4.}          : AttributeFormat
+  attribute9  {.bitsize:4.}          : AttributeFormat
+  attribute10 {.bitsize:4.}          : AttributeFormat
+  attribute11 {.bitsize:4.}          : AttributeFormat
+  attribute12 {.bitsize:4.}          : AttributeFormat
+  attribute13 {.bitsize:4.}          : AttributeFormat
+  attribute14 {.bitsize:4.}          : AttributeFormat
+  attribute15 {.bitsize:4.}          : AttributeFormat
+
+echo "alignof(VertexFormat)" & $alignof(VertexFormat)
+echo "sizeof(VertexFormat)" & $sizeof(VertexFormat)
+
 proc attributesOf*[V](v:typedesc[V]):Attributes =
   var i = 0
   for k,v in default(V).fieldPairs:
     result[i] = attributeFormatOf(type(v))
     echo k & ":" & $result[i]
     inc(i)
-
-when isMainModule:
-  type Vertex = object
-    position  : Vec3f
-    normal    : Vec3f
-    color     : Color
-    scale     : float32
-    # sizzle    : int
-  discard attributesOf(Vertex)
-
-#-------------------------------------------------------------------------------
-
-type Mesh* = ptr object
-  ## A mesh is a single buffer containing vertices and indices
-
-proc release*(mesh:Mesh) {.inline.}
-
-proc mesh*(
-  vertexStride : uint,
-  vertices     : Span[byte],
-  indexFormat  : IndexFormat = NoIndices,
-  indices      : Span[byte]  = Span[byte](),
-):Mesh {.inline.}
-
-proc mesh*[V,I](vertices:Span[V],indices:Span[I]):Mesh =
-  mesh(
-    vertexStride = sizeof(V).uint,
-    vertices     = vertices.bytes,
-    indexFormat  = indexFormatOf(I),
-    indices      = indices.bytes,
-  )
-
-proc mesh*[V,I](vertices:Span[V]):Mesh =
-  mesh(
-    vertexStride = sizeof(V).uint,
-    vertices     = vertices.bytes,
-  )
 
 #-------------------------------------------------------------------------------
 
@@ -285,37 +266,3 @@ static:
   echo "depthStencil:" & $depthStencil.id
   echo "buffer:" & $buffer.id
 ]#
-
-#===============================================================================
-# Windows implementation
-
-when defined(windows):
-
-  import api/windows/d3d11gpu as d3d11
-  import strformat
-
-  proc mesh*(
-    vertexStride : uint,
-    vertices     : Span[byte],
-    indexFormat  : IndexFormat,
-    indices      : Span[byte],
-  ):Mesh =
-    echo &"mesh({vertexStride=},{vertices.len=},{indexFormat=},{indices.len=})"
-    let dxgiFormatMap {.global.} = [
-      d3d11.NoIndices,
-      d3d11.Uint16,
-      d3d11.Uint32,
-    ]
-    cast[Mesh](d3d11.Mesh.acquire(
-      vertexStride = vertexStride,
-      vertices     = vertices,
-      indexFormat  = dxgiFormatMap[indexFormat.uint],
-      indices      = indices,
-    ))
-
-  proc release*(mesh:Mesh) =
-    cast[ptr d3d11.Mesh](mesh).release()
-
-#===============================================================================
-
-else: {.error:"unsupported platform".}

@@ -1,4 +1,5 @@
 import ptrutils
+import ./span
 
 type MSpan*[T] = object
   head, tail : ptr T
@@ -6,10 +7,13 @@ type MSpan*[T] = object
 proc mspan*(p, q: pointer):MSpan[byte] =
   MSpan[byte](head:cast[ptr byte](min(p,q)), tail:cast[ptr byte](max(p,q)))
 
+proc mspan*(p:pointer, n:SomeInteger):MSpan[byte] =
+  mspan(p, p + n)
+
 proc mspan*[T](p, q:ptr T):MSpan[T] =
   MSpan[T](head:min(p,q), tail:max(p,q))
 
-proc mspan*[T](p:ptr T, n:int):MSpan[T] =
+proc mspan*[T](p:ptr T, n:SomeInteger):MSpan[T] =
   let q : ptr T = p + n
   MSpan[T](head:min(p,q), tail:max(p,q))
 
@@ -25,11 +29,23 @@ converter mspan*[T](a:seq[T]):MSpan[T] =
   let p : ptr T = unsafeaddr system.`[]`(a,0)
   MSpan[T](head:p, tail:p + a.len)
 
+converter span*[T](s:MSpan[T]):Span[T] =
+  span(s.head, s.tail)
+
 proc `[]`*[T;I:SomeInteger](s:MSpan[T], i:I):var T =
   let q = s.head + i
   assert(q >= s.head)
   assert(q <  s.tail)
-  result = q[]
+  q[]
+
+proc `[]=`*[T;I:SomeInteger](s:MSpan[T], i:I, t:T) =
+  let q = s.head + i
+  assert(q >= s.head)
+  assert(q <  s.tail)
+  q[] = t
+
+proc bytes*[T](s:MSpan[T]):MSpan[byte] =
+  mspan(s.head.pointer, s.tail.pointer)
 
 proc len*[T](s:MSpan[T]):int =
   s.tail - s.head
@@ -82,7 +98,6 @@ proc collectionToString[T](x: T, prefix, separator, suffix: string): string =
       firstElement = false
     else:
       result.add(separator)
-
     when value isnot string and value isnot seq and compiles(value.isNil):
       # this branch should not be necessary
       if value.isNil:
@@ -95,6 +110,10 @@ proc collectionToString[T](x: T, prefix, separator, suffix: string): string =
 
 proc `$`*[T](s:MSpan[T]):string =
   collectionToString(s, "[", ", ", "]")
+
+proc `head`*[T](s:MSpan[T]):ptr T = s.head
+
+proc `tail`*[T](s:MSpan[T]):ptr T = s.tail
 
 when isMainModule:
   var a = [1, 2, 3]

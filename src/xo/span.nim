@@ -6,12 +6,19 @@ type Span*[T] = object
 proc span*(p, q: pointer):Span[byte] =
   Span[byte](head:cast[ptr byte](min(p,q)), tail:cast[ptr byte](max(p,q)))
 
+proc span*(p:pointer, n:SomeInteger):Span[byte] =
+  span(p, p + n)
+
 proc span*[T](p, q:ptr T):Span[T] =
   Span[T](head:min(p,q), tail:max(p,q))
 
-proc span*[T](p:ptr T, n:int):Span[T] =
+proc span*[T](p:ptr T, n:SomeInteger):Span[T] =
   let q : ptr T = p + n
   Span[T](head:min(p,q), tail:max(p,q))
+
+proc span*[T](p:ptr T):Span[T] =
+  let q : ptr T = if p == nil: p else: p + 1
+  Span[T](head:p,tail:q)
 
 proc span*[T](a:varargs[T]):Span[T] =
   let p : ptr T = unsafeaddr system.`[]`(a,0)
@@ -75,7 +82,6 @@ proc collectionToString[T](x: T, prefix, separator, suffix: string): string =
       firstElement = false
     else:
       result.add(separator)
-
     when value isnot string and value isnot seq and compiles(value.isNil):
       # this branch should not be necessary
       if value.isNil:
@@ -88,10 +94,6 @@ proc collectionToString[T](x: T, prefix, separator, suffix: string): string =
 
 proc `$`*[T](s:Span[T]):string =
   collectionToString(s, "[", ", ", "]")
-
-proc `head`*[T](s:Span[T]):ptr T = s.head
-
-proc `tail`*[T](s:Span[T]):ptr T = s.tail
 
 when isMainModule:
   var a = [1, 2, 3]

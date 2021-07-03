@@ -4,13 +4,13 @@ import xo/ptrutils
 
 #===============================================================================
 
-type Mesh* = object
+type D3D11Mesh* = object
   buffer        : ptr ID3D11Buffer
   vertexStride  : uint32
   indexFormat   : DXGI_FORMAT
   indicesOffset : uint32
 
-proc saferelease*(m:var Mesh) =
+proc saferelease*(m:var D3D11Mesh) =
   saferelease m.buffer
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -20,12 +20,12 @@ const Uint16*    = DXGI_FORMAT_R16_UINT
 const Uint32*    = DXGI_FORMAT_R32_UINT
 
 proc acquire*(
-  mesh:typedesc[Mesh],
+  mesh:typedesc[D3D11Mesh],
   vertexStride:uint,
   vertices:Span[byte],
   indexFormat:DXGI_FORMAT,
   indices:Span[byte],
-):ptr Mesh =
+):ptr D3D11Mesh =
   let verticesSize = vertices.len.uint32
   assert(verticesSize > 0)
   assert(verticesSize mod 4 == 0)
@@ -64,7 +64,7 @@ proc acquire*(
       pInitialData = addr data,
       ppBuffer     = addr buffer,
     )
-  alloc Mesh(
+  alloc D3D11Mesh(
     buffer        : buffer,
     indexFormat   : indexFormat,
     indicesOffset : verticesSize,
@@ -73,13 +73,13 @@ proc acquire*(
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc release*(m:ptr Mesh) =
+proc release*(m:ptr D3D11Mesh) =
   saferelease m.buffer
   dealloc m
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc set*(m:ptr Mesh) =
+proc set*(m:ptr D3D11Mesh) =
   var verticesOffset = 0u32
   context.IASetVertexBuffers(
     StartSlot       = 0,

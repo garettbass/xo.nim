@@ -2,25 +2,29 @@ import d3d11
 
 #===============================================================================
 
-type Surface* = object
+type D3D11Target* = object
+  rtv* : ptr ID3D11RenderTargetView
+  dsv* : ptr ID3D11DepthStencilView
+
+type D3D11View* = object
   swapChain : ptr IDXGISwapChain1
   rtv       : ptr ID3D11RenderTargetView
   dsv       : ptr ID3D11DepthStencilView
 
-proc saferelease*(s:var Surface) =
-  saferelease s.swapChain
-  saferelease s.rtv
+proc saferelease*(s:var D3D11View) =
   saferelease s.dsv
+  saferelease s.rtv
+  saferelease s.swapChain
 
-proc `=destroy`*(s:var Surface) =
-  echo "`=destroy`*(s:var Surface)"
+proc `=destroy`*(s:var D3D11View) =
+  echo "`=destroy`*(s:var D3D11View)"
   # writeStackTrace()
   saferelease s
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc init*(s:var Surface, hwnd:HWND) =
-  assert(s == default(Surface))
+proc init*(s:var D3D11View, hwnd:HWND) =
+  assert(s == default(D3D11View))
 
   block: # create swapChain
     var tmpDevice : ptr IDXGIDevice1
@@ -93,7 +97,7 @@ proc init*(s:var Surface, hwnd:HWND) =
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc resize*(s:var Surface) =
+proc resize*(s:var D3D11View) =
   assert(s.swapChain != nil)
   context.OMSetRenderTargets(0, nil, nil)
   saferelease s.rtv
@@ -137,27 +141,27 @@ proc resize*(s:var Surface) =
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc clear*(s:Surface, color:array[4,cfloat], depth:float, stencil:uint8) =
+proc clear*(s:D3D11View, color:array[4,cfloat], depth:float, stencil:uint8) =
   assert(s.swapChain != nil)
   context.ClearRenderTargetView(s.rtv, color)
   context.ClearDepthStencilView(s.dsv,D3D11_CLEAR_DEPTH_STENCIL,depth,stencil)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc present*(s:var Surface, vsync:bool) =
+proc present*(s:var D3D11View, vsync:bool) =
   assert(s.swapChain != nil)
   checkresult s.swapChain.Present(SyncInterval = vsync.uint32, Flags = 0)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc `fullscreen`*(s:Surface):bool =
+proc `fullscreen`*(s:D3D11View):bool =
   assert(s.swapChain != nil)
   var fullscreen : BOOL
   var target : ptr IDXGIOutput
   checkresult s.swapChain.GetFullscreenState(addr fullscreen, addr target)
   return fullscreen
 
-proc `fullscreen=`*(s:var Surface, fullscreen:bool) =
+proc `fullscreen=`*(s:var D3D11View, fullscreen:bool) =
   assert(s.swapChain != nil)
   var fullscreen : BOOL = fullscreen
   var target : ptr IDXGIOutput = nil

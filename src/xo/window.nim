@@ -73,8 +73,8 @@ proc defaultOnRender(w:Window) = discard
 
 when defined(windows):
 
-  import api/windows/surface
-  import api/windows/winapi
+  import platform/windows/surface
+  import platform/windows/winapi
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -94,83 +94,83 @@ when defined(windows):
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  type WindowData = object
+  type Win32Window = object
     hwnd     : HWND
     onClose  : OnClose
     onRender : OnRender
-    surface  : Surface
+    surface  : D3D11View
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  type WindowDataPtrs = seq[ptr WindowData]
+  type Win32Windows = seq[ptr Win32Window]
 
-  var windowDataPtrs : WindowDataPtrs
+  var win32Windows : Win32Windows
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  proc asWindowData(w:Window):ptr WindowData {.inline.} =
-    cast[ptr WindowData](w)
+  proc asWin32Window(w:Window):ptr Win32Window {.inline.} =
+    cast[ptr Win32Window](w)
 
-  proc asWindow(p:ptr WindowData):Window {.inline.} =
+  proc asWindow(p:ptr Win32Window):Window {.inline.} =
     cast[Window](p)
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  proc `windowData`(hwnd:HWND):ptr WindowData =
-    cast[ptr WindowData](GetWindowLongPtrA(hwnd, 0))
+  proc `win32Window`(hwnd:HWND):ptr Win32Window =
+    cast[ptr Win32Window](GetWindowLongPtrA(hwnd, 0))
 
-  proc `windowData=`(hwnd:HWND, p:ptr WindowData) =
+  proc `win32Window=`(hwnd:HWND, p:ptr Win32Window) =
     SetWindowLongPtrA(hwnd, 0, cast[uint](p))
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   proc renderAndPresentWindows() =
-    var foregroundFullscreenWindowData : ptr WindowData = nil
-    for windowData in ritems(windowDataPtrs):
-      windowData.surface.clear(color=[1f,1f,1f,1f],depth=0f,stencil=0u8)
-      windowData.onRender(windowData.asWindow)
-      if (foregroundFullscreenWindowData == nil and
-          windowData != nil and
-          windowData.surface.fullscreen and
-          windowData.hwnd.pointer == GetForegroundWindow().pointer):
-        foregroundFullscreenWindowData = windowData
-    if (foregroundFullscreenWindowData):
+    var foregroundFullscreenWindow : ptr Win32Window = nil
+    for win32Window in ritems(win32Windows):
+      win32Window.surface.clear(color=[0.1f,0.2f,1f,0.6f],depth=0f,stencil=0u8)
+      win32Window.onRender(win32Window.asWindow)
+      if (foregroundFullscreenWindow == nil and
+          win32Window != nil and
+          win32Window.surface.fullscreen and
+          win32Window.hwnd.pointer == GetForegroundWindow().pointer):
+        foregroundFullscreenWindow = win32Window
+    if (foregroundFullscreenWindow):
       # when a single window is active and fullscreen,
       # present only that window to avoid dropping out of fullscreen
-      foregroundFullscreenWindowData.surface.present(vsync = true)
+      foregroundFullscreenWindow.surface.present(vsync = true)
     else:
       # present all windows, vsync on last window presented
-      for i,windowData in rpairs(windowDataPtrs):
-        windowData.surface.present(vsync = i == 0)
+      for i,win32Window in rpairs(win32Windows):
+        win32Window.surface.present(vsync = i == 0)
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   proc wndProc(hwnd:HWND, msg:WM, wp, lp:int):int {.stdcall.} =
     case msg
       of WM_CREATE:
-        let windowData = alloc WindowData(
+        let win32Window = alloc Win32Window(
           hwnd     : hwnd,
           onClose  : defaultOnClose,
           onRender : defaultOnRender,
         )
-        windowDataPtrs.add(windowData)
-        hwnd.windowData = windowData
-        windowData.surface.init(hwnd)
+        win32Windows.add(win32Window)
+        hwnd.win32Window = win32Window
+        win32Window.surface.init(hwnd)
         return 0
       of WM_DESTROY:
-        let windowData = hwnd.windowData
-        windowDataPtrs.delete(windowDataPtrs.find(windowData))
-        dealloc windowData
-        hwnd.windowData = nil
+        let win32Window = hwnd.win32Window
+        win32Windows.delete(win32Windows.find(win32Window))
+        dealloc win32Window
+        hwnd.win32Window = nil
         return 0
       of WM_CLOSE:
-        let windowData = hwnd.windowData
-        let window = windowData.asWindow
+        let win32Window = hwnd.win32Window
+        let window = win32Window.asWindow
         window.close()
         return 0
       of WM_SIZE:
-        let windowData = hwnd.windowData
-        windowData.surface.resize()
+        let win32Window = hwnd.win32Window
+        win32Window.surface.resize()
         return 0
       of WM_ERASEBKGND:
         return 0
@@ -187,13 +187,13 @@ when defined(windows):
       style         : default(CS),#CS_HREDRAW or CS_VREDRAW,
       lpfnWndProc   : wndProc,
       cbClsExtra    : 0,
-      cbWndExtra    : sizeof(ptr WindowData).uint32,
+      cbWndExtra    : sizeof(ptr Win32Window).uint32,
       hInstance     : nil,
       hIcon         : LoadIconA(nil, IDI_APPLICATION),
       hCursor       : LoadCursorA(nil, IDC_ARROW),
       hbrBackground : nil,
       lpszMenuName  : nil,
-      lpszClassName : "xo.window.WindowData",
+      lpszClassName : "xo.window.Win32Window",
       hIconSm       : LoadIconA(nil, IDI_APPLICATION))
     let wndClassAtom = RegisterClassExA(addr wndClassExA)
     assert(wndClassAtom != 0)
@@ -221,8 +221,8 @@ when defined(windows):
       w       = 640,
       h       = 480,
     )
-    let windowData = hwnd.windowData
-    let window = windowData.asWindow
+    let win32Window = hwnd.win32Window
+    let window = win32Window.asWindow
     block:
       window.state = state
       if (size.x > 0 and size.y > 0):
@@ -237,9 +237,9 @@ when defined(windows):
 
   proc close(w:Window):bool =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
-    if (windowData.onClose(w)):
-      DestroyWindow(windowData.hwnd)
+    let win32Window = w.asWin32Window
+    if (win32Window.onClose(w)):
+      DestroyWindow(win32Window.hwnd)
       result = true
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -252,15 +252,15 @@ when defined(windows):
 
   proc `active`(w:Window):bool =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
-    GetActiveWindow().pointer == windowData.hwnd.pointer
+    let win32Window = w.asWin32Window
+    GetActiveWindow().pointer == win32Window.hwnd.pointer
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   proc `size`(w:Window):Size =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
-    let hwnd = windowData.hwnd
+    let win32Window = w.asWin32Window
+    let hwnd = win32Window.hwnd
     var rect : RECT
     GetClientRect(hwnd, addr rect)
     result.x = (rect.right - rect.left).uint16
@@ -268,8 +268,8 @@ when defined(windows):
 
   proc `size=`(w:Window, size:Size) =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
-    let hwnd = windowData.hwnd
+    let win32Window = w.asWin32Window
+    let hwnd = win32Window.hwnd
     var rect = RECT(left:0, top:0, right:size.x.int32, bottom:size.y.int32)
     let style = GetWindowStyle(hwnd)
     let exStyle = GetWindowExStyle(hwnd)
@@ -299,42 +299,42 @@ when defined(windows):
 
   proc `title=`*(w:Window, title:cstring) =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
-    let hwnd = windowData.hwnd
+    let win32Window = w.asWin32Window
+    let hwnd = win32Window.hwnd
     SetWindowTextA(hwnd, title)
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   proc `onClose=`*(w:Window, onClose:OnClose) =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
+    let win32Window = w.asWin32Window
     let onClose = onClose or defaultOnClose
-    if (windowData.onClose != onClose):
-        windowData.onClose = onClose
+    if (win32Window.onClose != onClose):
+        win32Window.onClose = onClose
 
   #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   proc `onRender=`*(w:Window, onRender:OnRender) =
     assert(w.pointer != nil)
-    let windowData = w.asWindowData
+    let win32Window = w.asWin32Window
     let onRender = onRender or defaultOnRender
-    if (windowData.onRender != onRender):
-        windowData.onRender = onRender
+    if (win32Window.onRender != onRender):
+        win32Window.onRender = onRender
 
   #-----------------------------------------------------------------------------
 
   iterator items*(w:Windows):Window =
     assert(w.pointer == windows.pointer)
-    for windowData in ritems(windowDataPtrs):
-      yield windowData.asWindow
+    for win32Window in ritems(win32Windows):
+      yield win32Window.asWindow
 
   proc any*(w:Windows):bool =
     assert(w.pointer == windows.pointer)
-    return windowDataPtrs.len > 0
+    return win32Windows.len > 0
 
   proc len*(w:Windows):int =
     assert(w.pointer == windows.pointer)
-    return windowDataPtrs.len
+    return win32Windows.len
 
   proc render*(w:Windows) =
     assert(w.pointer == windows.pointer)

@@ -37,6 +37,14 @@ import strformat
   )
   defer: release(cube)
 
+  type Vertex = object
+    position  : Vec3f
+    normal    : Vec3f
+    color     : Color
+    scale     : float32
+    # sizzle    : int # unsupported attribute type: int
+  discard attributesOf(Vertex)
+
   #[
   cbuffer constants : register(b0) {
     float4x4 modelViewProj;

@@ -8,14 +8,7 @@ converter tobool*[T](p:ptr T):bool = p != nil
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc `or`*(a,b:pointer):pointer =
-  if (a != nil):a else:b
-
-proc `or`*(a,b:cstring):cstring =
-  if (a != nil):a else:b
-
-proc `or`*[T](a,b:ptr T):ptr T =
-  if (a != nil):a else:b
+template `??`*(a,b:untyped) = (if (let ra = a; ra != nil):ra else:b)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -33,7 +26,7 @@ proc `-`*[I:SomeInteger](p:pointer, i:I):pointer =
 proc `-`*[T;I:SomeInteger](p:ptr T, i:I):ptr T =
   cast[ptr T](cast[int](p) - cast[int](i) * sizeof(T))
 
-proc `-`*[T](a, b:pointer):int =
+proc `-`*(a, b:pointer):int =
   (cast[int](a) - cast[int](b))
 
 proc `-`*[T](a, b:ptr T):int =
@@ -41,19 +34,21 @@ proc `-`*[T](a, b:ptr T):int =
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc `<=`*(a, b:pointer):bool =
-  a < b or a == b
+proc inc*[T](x: var ptr T, y = 1) = x = x + y
 
-proc `<=`*[T](a, b:ptr T):bool =
-  a < b or a == b
+proc dec*[T](x: var ptr T, y = 1) = x = x - y
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc `>=`*(a, b:pointer):bool =
-  a > b or a == b
+proc `>`*(a, b:pointer):bool = cast[uint](a) > cast[uint](b)
 
-proc `>=`*[T](a, b:ptr T):bool =
-  a > b or a == b
+proc `>`*[T](a, b:ptr T):bool = cast[uint](a) > cast[uint](b)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+proc `>=`*(a, b:pointer):bool = cast[uint](a) >= cast[uint](b)
+
+proc `>=`*[T](a, b:ptr T):bool = cast[uint](a) >= cast[uint](b)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -86,11 +81,11 @@ proc min*[T](a, b:ptr T):ptr T =
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-proc alloc*(initializer:object or tuple):auto =
+proc alloc*(initializer:object):auto =
   type T = type(initializer)
-  result = cast[ptr T](system.alloc(sizeof(T)))
+  result = cast[ptr T](system.alloc0(sizeof(T))) # must be alloc0 for --gc:orc
   result[] = initializer
 
-template dealloc*(instance:ptr object or tuple) =
+template dealloc*(instance:ptr object) =
   reset(instance[])
   system.dealloc(instance.pointer)

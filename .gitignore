@@ -1,0 +1,11 @@
+# ignore files with no extention:
+*
+!*/
+!*.*
+
+# normal ignores:
+nimcache
+*.exe
+*.pdb
+*.ilk
+*.code-workspace
